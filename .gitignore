@@ -1,0 +1,14 @@
+node_modules/
+output/
+.playwright-cli/
+coverage/
+.env
+.env.*
+!.env.example
+.credentials.yaml
+.credentials.yml
+*.tgz
+*.log
+*.tmp
+.DS_Store
+Thumbs.db

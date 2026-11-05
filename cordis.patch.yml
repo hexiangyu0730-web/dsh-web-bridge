@@ -1,0 +1,7 @@
+# @xueray/dsh-web-bridge — DeepSeek 会话桥
+# Keep the row id stable for existing user overrides. Relative resolution is
+# anchored to this patch file, so old local links also survive the package rename.
+- insert:
+    - id: deepseek-web
+      name: ./lib/index.js
+      config: {}

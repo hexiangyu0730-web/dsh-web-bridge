@@ -1,0 +1,10 @@
+{
+  "meta": {
+    "title": "DeepSeek Web Bridge",
+    "description": "Browse and continue DeepSeek web conversations in DSH, or import them with attachments into a workspace."
+  },
+  "panel": {
+    "title": "DeepSeek Web Bridge",
+    "description": "Browse and import web conversations, or continue them on the web."
+  }
+}

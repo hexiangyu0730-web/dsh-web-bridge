@@ -1,0 +1,74 @@
+{
+  "name": "@xueray/dsh-web-bridge",
+  "version": "0.4.5",
+  "type": "module",
+  "description": "Browse and continue DeepSeek web conversations in DSH, or import them with attachments into a workspace.",
+  "author": {
+    "name": "SaiSenBox",
+    "url": "https://github.com/SaiSenBox"
+  },
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SaiSenBox/dsh-web-bridge.git"
+  },
+  "homepage": "https://github.com/SaiSenBox/dsh-web-bridge#readme",
+  "bugs": {
+    "url": "https://github.com/SaiSenBox/dsh-web-bridge/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0",
+    "dsh": ">=0.2.1-rc.2 <0.3.0"
+  },
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/deepseek-api.js",
+    "lib/workspace-files.js",
+    "lib/client.js",
+    "cordis.patch.yml",
+    "locale/zh.json",
+    "locale/en.json",
+    "icon.svg",
+    "README.md",
+    "README.en.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md",
+    "docs",
+    "assets/screenshots",
+    "screenshots.json"
+  ],
+  "scripts": {
+    "check": "node --check lib/index.js && node --check lib/deepseek-api.js && node --check lib/client.js && node --check lib/workspace-files.js",
+    "test": "node --test test/*.test.js",
+    "verify:package": "node scripts/verify-package.mjs",
+    "prepublishOnly": "npm run check && npm test && npm run verify:package"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true
+    }
+  },
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "deepseek-web",
+    "chat-import"
+  ]
+}

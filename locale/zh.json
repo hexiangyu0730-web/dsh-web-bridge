@@ -1,0 +1,10 @@
+{
+  "meta": {
+    "title": "DeepSeek 会话桥",
+    "description": "在侧栏继续 DeepSeek 网页对话，或导入到 DSH 工作区。"
+  },
+  "panel": {
+    "title": "DeepSeek 会话桥",
+    "description": "浏览并导入网页端会话，或在网页端继续追问。"
+  }
+}
