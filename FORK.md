@@ -64,6 +64,7 @@ dsh plugin --profile desktop remove @xueray/dsh-web-bridge
 ## 发布状态
 
 - 已发布：<https://github.com/hexiangyu0730-web/dsh-web-bridge>（public，默认分支 `main`，`origin`）
+- 已提交上游：**[PR #1](https://github.com/SaiSenBox/dsh-web-bridge/pull/1)**，来自 fork `hexiangyu0730-web/dsh-web-bridge-fork` 的 `pr-attach` 分支，只含 `lib/client.js` 两处改动（`+68 −1`），正文与状态见 [docs/upstream-pr.md](docs/upstream-pr.md)
 - `upstream` 保留指向原作者仓库，用于取上游基线
 - CI：`.github/workflows/check.yml` 已在 GitHub 上通过（`npm run check` / `npm test` / `npm run verify:package`）
 - 许可证与署名：保留上游 `LICENSE`（PolyForm Noncommercial 1.0.0）与 Required Notice，`package.json` 的 `author` 仍是 SaiSenBox
