@@ -17,13 +17,37 @@
 
 两者都复用原有上传链路，限制不变：最多 10 个附件，单个 ≤ 20 MiB；输入框文本上限仍为 8000 字符。
 
+## 相对上游的改动痕迹（可逐行核对）
+
+- 上游基线：`SaiSenBox/dsh-web-bridge@b5531f2`（v0.4.5）
+- 完整 diff：[`docs/fork-changes.patch`](docs/fork-changes.patch)（文本文件，不含二进制）
+- 本地复现：
+
+```sh
+git fetch upstream main
+git diff upstream/main HEAD -- . ':(exclude)assets/promo'
+```
+
+| 文件 | 位置 | 改动 |
+| --- | --- | --- |
+| `lib/client.js` | `WebChatPanel` 状态 | 新增 `dragActive` / `dragDepthRef` |
+| `lib/client.js` | `addFiles()` 之后 | 新增 `dragHasFiles`、`dragCanDrop`、`onChatDragEnter/Over/Leave/Drop` |
+| `lib/client.js` | 面板根节点 `.dsweb-chat` | 绑定拖放事件，按状态切换 `dsweb-drop-active` |
+| `lib/client.js` | 输入框 `dsweb-chat-input` | 新增 `onPaste` 处理 |
+| `lib/client.js` | 样式表 | 新增拖放高亮规则 |
+| `lib/client.js`、`lib/index.js`、`package.json` | 版本常量 | `0.4.5` → `0.4.5-fork.1` |
+| `README.md`、`README.en.md`、`CHANGELOG.md` | — | 标注 fork、补充功能与变更条目 |
+| `assets/promo/` | — | 删除上游宣传视频与封面（约 5.9 MB，与功能无关，且大文件上传易被网络重置） |
+
+提交记录只有两个（`git log --oneline`）：上游基座提交 + 本次功能提交，便于审阅时只看第二个。
+
 ## 安装
 
 需要 DSH `>=0.2.1-rc.2 <0.3.0`。
 
 ```sh
-# 从你自己的 GitHub 账号安装（把 USER 换成你的用户名）
-dsh plugin --profile desktop add github:USER/dsh-web-bridge
+# 从本仓库安装
+dsh plugin --profile desktop add github:hexiangyu0730-web/dsh-web-bridge
 
 # 本地目录安装
 dsh plugin --profile desktop add ./dsh-web-bridge
@@ -37,30 +61,23 @@ dsh plugin --profile desktop add ./dsh-web-bridge
 dsh plugin --profile desktop remove @xueray/dsh-web-bridge
 ```
 
-## 发布前的检查清单
+## 发布状态
 
-1. 在 GitHub 新建仓库（不建议直接 fork 后改名，容易和上游混淆；单独建库更清楚，但需保留本文件与 LICENSE）。
-2. 按需改 `package.json` 的 `repository` / `homepage` / `bugs` 指向你自己的仓库；`author` 保持 SaiSenBox 署名。
-3. 仓库设为 **public**，并保留 LICENSE 与 Required Notice；不要改成 MIT 等其它许可。
-4. 不要把 `DEEPSEEK_WEB_TOKEN`、`.credentials.yaml`、日志或截图里的 token 提交上去。
-5. 不要发布到 npm 的 `@xueray` 作用域（不属于你）；如需分发，用 GitHub 安装方式。
+- 已发布：<https://github.com/hexiangyu0730-web/dsh-web-bridge>（public，默认分支 `main`，`origin`）
+- `upstream` 保留指向原作者仓库，用于取上游基线
+- CI：`.github/workflows/check.yml` 已在 GitHub 上通过（`npm run check` / `npm test` / `npm run verify:package`）
+- 许可证与署名：保留上游 `LICENSE`（PolyForm Noncommercial 1.0.0）与 Required Notice，`package.json` 的 `author` 仍是 SaiSenBox
+- 未发布到 npm：`@xueray` 作用域不属于本仓库，分发使用 GitHub 安装方式
 
-## 推送到 GitHub
-
-仓库地址预设为 `https://github.com/hexiangyu0730-web/dsh-web-bridge.git`（`origin`），`upstream` 指向原作者。
+日常提交：
 
 ```powershell
-# 1. 在 GitHub 上新建一个空仓库：dsh-web-bridge，不要勾选 README / .gitignore / license
-# 2. 首次推送，浏览器会弹出 Git Credential Manager 登录
-git push -u origin main
+git add -A
+git commit -m "docs: ..."
+git push
 ```
 
-推送成功后安装：
-
-```sh
-dsh plugin --profile desktop remove @xueray/dsh-web-bridge
-dsh plugin --profile desktop add github:hexiangyu0730-web/dsh-web-bridge
-```
+首次推送时若报 `Recv failure: Connection was reset`，是网络对 `github.com` 解析 IP 的干扰，处理方式见仓库 issue 或本地 hosts 记录（`140.82.112.3 github.com`）。
 
 ## 与上游的关系
 

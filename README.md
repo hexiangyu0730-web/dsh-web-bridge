@@ -8,7 +8,7 @@
 
 写它的原因挺简单：网页里聊了一半，切到 DSH 又得复制上下文；有图片、文件时就更麻烦了。所以做了一个桥——想留在网页账号里继续聊就直接打开，想交给工作区里的 Agent 接着做就拖进去。
 
-> **本仓库是修改版（fork）。** 基于 SaiSenBox 的 `@xueray/dsh-web-bridge` 0.4.5，在网页对话输入框上增加了「粘贴附件」和「拖放附件」。不是原作者发布，未经原作者审核；仅限非商业用途，必须保留 [LICENSE](LICENSE) 全文与 Required Notice，说明见 [FORK.md](FORK.md)。上游仓库：<https://github.com/SaiSenBox/dsh-web-bridge>。
+> **本仓库是修改版（fork）。** 基于 SaiSenBox 的 `@xueray/dsh-web-bridge` 0.4.5，在网页对话输入框上增加了「粘贴附件」和「拖放附件」。不是原作者发布，未经原作者审核；仅限非商业用途，必须保留 [LICENSE](LICENSE) 全文与 Required Notice。改动只集中在 `lib/client.js`，逐行 diff 见 [FORK.md](FORK.md) 与 [docs/fork-changes.patch](docs/fork-changes.patch)；上游仓库：<https://github.com/SaiSenBox/dsh-web-bridge>。
 
 这是 **SaiSenBox 的非官方插件**，不属于 DeepSeek 官方产品，也不是名称相近的 `dsh-deepseek-web` npm 包。网页接口没有稳定性承诺，可能随时变化；使用前请了解[风险与限制](#风险与限制)。
 

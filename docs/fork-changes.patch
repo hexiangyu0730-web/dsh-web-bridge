@@ -1,0 +1,309 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index a63d5f2..0e8108a 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -1,5 +1,14 @@
+ # 更新记录
+ 
++## 0.4.5-fork.1
++
++本修改版（非上游发布，基于 0.4.5）。
++
++- 网页对话输入框支持**粘贴附件**：Ctrl+V 时读取剪贴板里的图片、PDF、文档等文件并加入待发送附件；剪贴板含文字时仍按文本粘贴，不改变原有行为。
++- 聊天面板支持**拖放附件**：把文件拖到聊天区域任意位置，输入框显示虚线高亮，松手后加入附件；发送中、历史加载中或回答分支异常时不接收。
++- 两种方式都复用原有上传链路与限制：最多 10 个附件、单个 ≤ 20 MiB，任意文件类型，沿用原有缩略图与失败提示。
++- 新增 `FORK.md`，说明改动范围、署名、非商业许可要求与发布检查清单；版本常量改为 `0.4.5-fork.1`。
++
+ ## 0.4.5
+ 
+ - npm 包名为 `@xueray/dsh-web-bridge`，界面名称为「DeepSeek 会话桥」；原配置行 ID、HTTP 路由和浏览器偏好键保持兼容。
+diff --git a/FORK.md b/FORK.md
+new file mode 100644
+index 0000000..861285c
+--- /dev/null
++++ b/FORK.md
+@@ -0,0 +1,89 @@
++# 修改说明（fork）
++
++本仓库是 **非官方修改版**，基于 SaiSenBox 的 [`@xueray/dsh-web-bridge`](https://github.com/SaiSenBox/dsh-web-bridge) 0.4.5。
++
++- 原作者：SaiSenBox（<https://github.com/SaiSenBox>），上游仓库：<https://github.com/SaiSenBox/dsh-web-bridge>
++- 本版本的改动**未经原作者审核**，不代表原作者意见，也不是 DeepSeek 官方产品。
++- 仅限**非商业用途**。许可证为 PolyForm Noncommercial 1.0.0（见 [LICENSE](LICENSE)），分发时必须保留许可全文与文件顶部的 Required Notice；商业授权请联系原作者。
++- 本仓库保留了上游的测试与 CI 配置；`docs/`、`assets/`、截图等仍来自上游。
++
++## 本版本改了什么
++
++代码改动只在 `lib/client.js` 的网页对话面板（`WebChatPanel`）内，共三处：
++
++1. **粘贴附件**：输入框新增 `onPaste`。从 `clipboardData.files` / `items` 取出文件交给原有的 `addFiles()`；仅当剪贴板没有文字时接管，复制富文本仍按文本粘贴。
++2. **拖放附件**：聊天面板根节点绑定 `dragenter/dragover/dragleave/drop`，用计数器避免子元素抖动；拖入文件时加 `dsweb-drop-active` 类。发送中、历史加载中或回答分支异常时不接收。
++3. **样式与版本**：新增 `.dsweb-chat.dsweb-drop-active .dsweb-chat-composer` 虚线高亮；`FALLBACK_VERSION` / `VERSION` / `package.json` 版本改为 `0.4.5-fork.1`。
++
++两者都复用原有上传链路，限制不变：最多 10 个附件，单个 ≤ 20 MiB；输入框文本上限仍为 8000 字符。
++
++## 相对上游的改动痕迹（可逐行核对）
++
++- 上游基线：`SaiSenBox/dsh-web-bridge@b5531f2`（v0.4.5）
++- 完整 diff：[`docs/fork-changes.patch`](docs/fork-changes.patch)（文本文件，不含二进制）
++- 本地复现：
++
++```sh
++git fetch upstream main
++git diff upstream/main HEAD -- . ':(exclude)assets/promo'
++```
++
++| 文件 | 位置 | 改动 |
++| --- | --- | --- |
++| `lib/client.js` | `WebChatPanel` 状态 | 新增 `dragActive` / `dragDepthRef` |
++| `lib/client.js` | `addFiles()` 之后 | 新增 `dragHasFiles`、`dragCanDrop`、`onChatDragEnter/Over/Leave/Drop` |
++| `lib/client.js` | 面板根节点 `.dsweb-chat` | 绑定拖放事件，按状态切换 `dsweb-drop-active` |
++| `lib/client.js` | 输入框 `dsweb-chat-input` | 新增 `onPaste` 处理 |
++| `lib/client.js` | 样式表 | 新增拖放高亮规则 |
++| `lib/client.js`、`lib/index.js`、`package.json` | 版本常量 | `0.4.5` → `0.4.5-fork.1` |
++| `README.md`、`README.en.md`、`CHANGELOG.md` | — | 标注 fork、补充功能与变更条目 |
++| `assets/promo/` | — | 删除上游宣传视频与封面（约 5.9 MB，与功能无关，且大文件上传易被网络重置） |
++
++提交记录只有两个（`git log --oneline`）：上游基座提交 + 本次功能提交，便于审阅时只看第二个。
++
++## 安装
++
++需要 DSH `>=0.2.1-rc.2 <0.3.0`。
++
++```sh
++# 从本仓库安装
++dsh plugin --profile desktop add github:hexiangyu0730-web/dsh-web-bridge
++
++# 本地目录安装
++dsh plugin --profile desktop add ./dsh-web-bridge
++```
++
++安装或更新后**完全退出 DSH（包括托盘进程）**再打开，只刷新页面不会重新加载 Host 接口和前端包。
++
++已经装过上游 `@xueray/dsh-web-bridge` 的话，先移除旧包再装本版本，不要两份同时启用：
++
++```sh
++dsh plugin --profile desktop remove @xueray/dsh-web-bridge
++```
++
++## 发布状态
++
++- 已发布：<https://github.com/hexiangyu0730-web/dsh-web-bridge>（public，默认分支 `main`，`origin`）
++- `upstream` 保留指向原作者仓库，用于取上游基线
++- CI：`.github/workflows/check.yml` 已在 GitHub 上通过（`npm run check` / `npm test` / `npm run verify:package`）
++- 许可证与署名：保留上游 `LICENSE`（PolyForm Noncommercial 1.0.0）与 Required Notice，`package.json` 的 `author` 仍是 SaiSenBox
++- 未发布到 npm：`@xueray` 作用域不属于本仓库，分发使用 GitHub 安装方式
++
++日常提交：
++
++```powershell
++git add -A
++git commit -m "docs: ..."
++git push
++```
++
++首次推送时若报 `Recv failure: Connection was reset`，是网络对 `github.com` 解析 IP 的干扰，处理方式见仓库 issue 或本地 hosts 记录（`140.82.112.3 github.com`）。
++
++## 与上游的关系
++
++- 上游更新后，本仓库不会自动同步。合并上游时重点看 `lib/client.js` 的 `WebChatPanel`、`addFiles` 和版本常量三处，容易冲突。
++- 想回到上游原版：`dsh plugin --profile desktop remove` 本仓库版本后重新安装 `@xueray/dsh-web-bridge`。
++
++## 风险
++
++上游使用的是 DeepSeek 网页端的非公开接口，没有稳定性承诺，可能被限流或改变；发送、重答、删除等操作会修改网页账号。请自行确认使用方式符合服务条款。
+diff --git a/README.en.md b/README.en.md
+index 3cc82d6..84a7a18 100644
+--- a/README.en.md
++++ b/README.en.md
+@@ -8,6 +8,8 @@ Bring DeepSeek web conversations into DeepSeek Harness: keep chatting on the web
+ 
+ I built it to stop copying context between two windows. Open a web conversation when you want to stay on the web account; drag it into a workspace when you want your local agent to take over.
+ 
++> **This repository is a modified fork.** It is based on SaiSenBox's `@xueray/dsh-web-bridge` 0.4.5 and adds paste-to-attach and drag-and-drop attachments to the web chat composer. It is not published or reviewed by the original author, is limited to noncommercial use, and must keep the full [LICENSE](LICENSE) and Required Notice. Changes are confined to `lib/client.js`; see [FORK.md](FORK.md) and [docs/fork-changes.patch](docs/fork-changes.patch) for the line-by-line diff. Upstream: <https://github.com/SaiSenBox/dsh-web-bridge>.
++
+ This is an **unofficial plugin by SaiSenBox**, not a DeepSeek product and not the similarly named `dsh-deepseek-web` npm package. It uses private web endpoints that can change without notice.
+ 
+ ## Features
+@@ -17,6 +19,8 @@ This is an **unofficial plugin by SaiSenBox**, not a DeepSeek product and not th
+ - Regenerate an answer, switch between versions and continue from the selected branch.
+ - Drag a conversation into a workspace or preview it before importing. Readable attachments migrate to local DSH storage, with original files also saved in the workspace.
+ - Native DSH components and theme tokens, with Chinese/English following your app language.
++- **Paste attachments**: press Ctrl+V in the composer and images, PDFs, documents or archives on the clipboard become pending attachments; when the clipboard also carries text, it still pastes as text.
++- **Drop attachments**: drop files anywhere on the chat panel; the composer shows a dashed highlight and the files are attached on release.
+ 
+ Opening a web conversation writes replies back to the web account. Continuing an **imported** local conversation uses your DSH default model and does not write back to the original web thread.
+ 
+diff --git a/README.md b/README.md
+index 936a857..bede9f1 100644
+--- a/README.md
++++ b/README.md
+@@ -8,6 +8,8 @@
+ 
+ 写它的原因挺简单：网页里聊了一半，切到 DSH 又得复制上下文；有图片、文件时就更麻烦了。所以做了一个桥——想留在网页账号里继续聊就直接打开，想交给工作区里的 Agent 接着做就拖进去。
+ 
++> **本仓库是修改版（fork）。** 基于 SaiSenBox 的 `@xueray/dsh-web-bridge` 0.4.5，在网页对话输入框上增加了「粘贴附件」和「拖放附件」。不是原作者发布，未经原作者审核；仅限非商业用途，必须保留 [LICENSE](LICENSE) 全文与 Required Notice。改动只集中在 `lib/client.js`，逐行 diff 见 [FORK.md](FORK.md) 与 [docs/fork-changes.patch](docs/fork-changes.patch)；上游仓库：<https://github.com/SaiSenBox/dsh-web-bridge>。
++
+ 这是 **SaiSenBox 的非官方插件**，不属于 DeepSeek 官方产品，也不是名称相近的 `dsh-deepseek-web` npm 包。网页接口没有稳定性承诺，可能随时变化；使用前请了解[风险与限制](#风险与限制)。
+ 
+ ## 能做什么
+@@ -17,6 +19,9 @@
+ - 把网页会话拖入工作区，变成真正的 DSH 会话；也可以预览后选择工作区导入。
+ - 导入时迁移可读取的图片和文件，同时把原文件放到目标工作区；失败项会单独列出，不会悄悄丢掉。
+ - 中文、英文随 DSH 设置切换，沿用原生主题、Markdown 和交互组件。
++- **粘贴附件**：在输入框里 Ctrl+V，剪贴板中的图片、PDF、文档等文件直接变成待发送附件；剪贴板里带文字时仍按文本粘贴。
++- **拖放附件**：把文件拖到聊天区域任意位置，输入框出现虚线高亮，松手即加入附件。
++
+ 
+ **两种“继续聊”不是一回事：**点击网页会话，回复会写回网页账号；拖入工作区后，继续对话使用 DSH 当前默认模型，不会写回原网页会话。
+ 
+diff --git a/lib/client.js b/lib/client.js
+index fef5ba8..c1408a8 100644
+--- a/lib/client.js
++++ b/lib/client.js
+@@ -16,7 +16,7 @@ window.__ModuleLoader__.load({
+ 
+ 		var LOCALE_NS = "@xueray/dsh-web-bridge";
+ 		var API_BASE = "/deepseek-web";
+-		var FALLBACK_VERSION = "0.4.5";
++		var FALLBACK_VERSION = "0.4.5-fork.1";
+ 		var MAX_TOKEN_LENGTH = 4096;
+ 		var MAX_PROMPT_LENGTH = 8000;
+ 		var MAX_TEXT_CHARS = 20000;
+@@ -655,6 +655,7 @@ window.__ModuleLoader__.load({
+ 			".dsweb-chat-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex:none;padding:10px 20px;border-bottom:.5px solid var(--dsw-alias-border-l2)}.dsweb-chat-heading{flex:1;min-width:0}.dsweb-chat-title{margin:0;font-size:14px;line-height:22px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dsweb-chat-actions{display:flex;align-items:center;gap:6px;flex:none}",
+ 			".dsweb-chat-main{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}.dsweb-chat-messages{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable both-edges}.dsweb-chat-thread{box-sizing:border-box;width:calc(100% - 48px);max-width:var(--dsh-chat-content-width);margin:auto;padding:24px 0;display:flex;flex-direction:column;gap:28px;min-width:0}.dsweb-chat-empty{padding:20px;text-align:center;color:var(--dsw-alias-label-tertiary);font-size:13px}",
+ 			".dsweb-composer-root{flex:none;display:flex;flex-direction:column;align-items:center;padding:0 16px 12px;gap:6px}.dsweb-chat-composer{box-sizing:border-box;width:100%;max-width:var(--dsh-composer-card-max-width);--dsw-elevation-stroke-color:var(--dsw-alias-border-l2);border-radius:var(--dsw-radius-panel,24px);background:var(--dsw-specific-input-major);box-shadow:var(--dsw-elevation-soft);font-size:var(--dsh-content-font-size,14px);line-height:calc(24px + var(--dsh-content-font-delta,0px));border:0;display:flex;flex-direction:column;gap:12px;padding-top:8px;min-width:0}",
++			".dsweb-chat.dsweb-drop-active .dsweb-chat-composer{outline:2px dashed var(--dsw-alias-state-business-primary);outline-offset:-2px;background:var(--dsw-alias-state-business-tertiary,var(--dsw-specific-input-major))}",
+ 			".dsweb-chat .dsweb-chat-input{box-sizing:border-box;width:calc(100% - 4px);min-height:36px;max-height:var(--dsh-composer-text-max-height);resize:none;overflow:auto;border:0;outline:0;border-radius:0;background:transparent;box-shadow:none;color:var(--dsw-alias-label-primary);caret-color:var(--dsw-alias-state-business-primary);font:inherit;line-height:inherit;white-space:pre-wrap;overflow-wrap:anywhere;padding:4px 8px 0 14px}.dsweb-chat .dsweb-chat-input:focus{outline:0;box-shadow:none}.dsweb-chat-input::placeholder{color:var(--dsw-alias-label-caption,var(--dsw-alias-label-tertiary))}.dsweb-composer-row{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;min-width:0;padding:2px 8px 6px}.dsweb-composer-tools,.dsweb-composer-trailing{display:flex;align-items:center;gap:12px;min-width:0}.dsweb-composer-trailing{margin-left:auto;flex:none}.dsweb-composer-add{display:grid;place-items:center;flex:none;width:28px;height:28px;border:0;border-radius:999px;background:var(--dsw-specific-selector);color:var(--dsw-alias-label-primary);cursor:pointer}.dsweb-composer-add:hover{background:var(--dsw-alias-interactive-bg-hover-solid)}",
+ 			".dsweb-composer-mode,.dsweb-model-trigger{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:28px;max-width:100%;min-width:0;padding:0 6px;border:0;border-radius:var(--dsw-radius-sm,8px);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:13px;line-height:20px;font-weight:500;cursor:pointer}.dsweb-composer-mode:hover,.dsweb-model-trigger:hover{background:var(--dsw-alias-interactive-bg-hover)}.dsweb-composer-mode[aria-pressed='true']{color:var(--dsw-alias-state-business-primary);background:var(--dsw-alias-state-business-tertiary,var(--dsw-alias-interactive-bg-hover))}.dsweb-model-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dsweb-model-mode{color:var(--dsw-alias-label-tertiary)}.dsweb-model-trigger[aria-expanded='true']>svg:last-child{transform:rotate(180deg)}.dsweb-chat-send{display:grid;place-items:center;flex:none;width:34px;height:34px;transform:translateY(-2px);border:0;border-radius:999px;background:var(--dsw-alias-button-info-fill);color:#fff;cursor:pointer;transition:background-color .1s}.dsweb-chat-send:hover:not(:disabled){background:var(--dsw-alias-button-info-hover)}.dsweb-chat-send:disabled{opacity:.4;cursor:default}.dsweb-composer-mode:disabled,.dsweb-model-trigger:disabled{opacity:.5;cursor:default}.dsweb-composer-root button:focus-visible{outline:2px solid var(--dsw-focus-ring-color,var(--dsw-alias-state-business-primary));outline-offset:2px}.dsweb-chat-option-row{display:flex;align-items:center;justify-content:space-between;gap:28px;min-width:200px;padding:8px 10px;font-size:13px}.dsweb-chat-options{max-width:calc(100vw - 24px)}.dsweb-chat-recovery{width:100%;max-width:var(--dsh-composer-card-max-width)}",
+ 			".dsweb-search-field{position:relative;min-width:0;flex:none;display:flex;align-items:center;color:var(--dsw-alias-label-tertiary)}.dsweb-search-field>svg{position:absolute;left:10px;pointer-events:none}.dsweb-search-field .dsweb-input{height:34px;padding:0 10px 0 32px;border:.5px solid var(--dsw-alias-border-l4,var(--dsw-alias-border-l2));background:var(--dsw-alias-bg-layer-1);font-size:12px}.dsweb-input:focus,.dsweb-textarea:focus{border-color:var(--dsw-focus-ring-color,var(--dsw-alias-state-business-primary));outline:0;box-shadow:0 0 0 2px color-mix(in srgb,var(--dsw-focus-ring-color,var(--dsw-alias-state-business-primary)) 18%,transparent)}",
+@@ -3872,6 +3873,8 @@ window.__ModuleLoader__.load({
+ 			var fileInputRef = React.useRef(null);
+ 			var filesState = React.useState([]), files = filesState[0], setFiles = filesState[1];
+ 			var fileErrorState = React.useState(""), fileError = fileErrorState[0], setFileError = fileErrorState[1];
++			var dragActiveState = React.useState(false), dragActive = dragActiveState[0], setDragActive = dragActiveState[1];
++			var dragDepthRef = React.useRef(0);
+ 			var filesRef = React.useRef([]), uploadEpoch = React.useRef(0), fileSequence = React.useRef(0);
+ 			var uploadControllers = React.useRef(new Map()), uploadQueue = React.useRef(Promise.resolve());
+ 			function updateFiles(transform) {
+@@ -3925,6 +3928,40 @@ window.__ModuleLoader__.load({
+ 				updateFiles(function (list) { return list.concat(added); });
+ 				queueUploads(added);
+ 			}
++
++			function dragHasFiles(event) {
++				var transfer = event && event.dataTransfer;
++				if (!transfer || !transfer.types) return false;
++				try { return Array.prototype.indexOf.call(transfer.types, "Files") >= 0; } catch (error) { return false; }
++			}
++			function dragCanDrop() {
++				return Boolean(c.hasToken) && !sending && phase === "ready" && !recoveryRequired;
++			}
++			function onChatDragEnter(event) {
++				if (!dragHasFiles(event)) return;
++				event.preventDefault();
++				dragDepthRef.current += 1;
++				setDragActive(true);
++			}
++			function onChatDragOver(event) {
++				if (!dragHasFiles(event)) return;
++				event.preventDefault();
++				try { event.dataTransfer.dropEffect = dragCanDrop() ? "copy" : "none"; } catch (error) { /* ignore */ }
++			}
++			function onChatDragLeave(event) {
++				if (!dragHasFiles(event)) return;
++				dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
++				if (!dragDepthRef.current) setDragActive(false);
++			}
++			function onChatDrop(event) {
++				if (!dragHasFiles(event)) return;
++				event.preventDefault();
++				event.stopPropagation();
++				dragDepthRef.current = 0;
++				setDragActive(false);
++				if (!dragCanDrop()) return;
++				addFiles(event.dataTransfer.files);
++			}
+ 			function removeFile(key) {
+ 				var controller = uploadControllers.current.get(key);
+ 				if (controller) controller.abort();
+@@ -4232,6 +4269,32 @@ window.__ModuleLoader__.load({
+ 									setPrompt(event.target.value);
+ 									setSendError("");
+ 								},
++								onPaste: function (event) {
++									var data = event.clipboardData;
++									if (!data) return;
++									var text = "";
++									try { text = data.getData("text/plain") || ""; } catch (error) { text = ""; }
++									var pasted = [];
++									try {
++										if (data.files && data.files.length) {
++											Array.prototype.forEach.call(data.files, function (file) { if (file) pasted.push(file); });
++										} else if (data.items) {
++											Array.prototype.forEach.call(data.items, function (item) {
++												if (item && item.kind === "file") {
++													var file = item.getAsFile();
++													if (file) pasted.push(file);
++												}
++											});
++										}
++									} catch (error) { /* ignore */ }
++									// Any file type can be attached: images, PDFs, documents, archives.
++									var attachments = pasted.filter(function (file) { return Boolean(file) && file.size > 0; });
++									// Only take over when the clipboard carries files and no text, so copying
++									// rich text that happens to embed an image still pastes as text.
++									if (!attachments.length || text.trim()) return;
++									event.preventDefault();
++									addFiles(attachments);
++								},
+ 								onKeyDown: function (event) {
+ 									if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing || event.keyCode === 229) return;
+ 									event.preventDefault();
+@@ -4268,7 +4331,11 @@ window.__ModuleLoader__.load({
+ 
+ 			return R(
+ 				"div",
+-				{ className: "dsweb-chat", ref: rootRef, role: "region", "aria-label": tt("webChatBadge") },
++				{
++					className: "dsweb-chat" + (dragActive ? " dsweb-drop-active" : ""), ref: rootRef, role: "region",
++					"aria-label": tt("webChatBadge"),
++					onDragEnter: onChatDragEnter, onDragOver: onChatDragOver, onDragLeave: onChatDragLeave, onDrop: onChatDrop
++				},
+ 				R(
+ 					"header",
+ 					{ className: "dsweb-chat-head" },
+diff --git a/lib/index.js b/lib/index.js
+index d1565ed..49078b8 100644
+--- a/lib/index.js
++++ b/lib/index.js
+@@ -38,7 +38,7 @@ export const inject = [
+   "sessionPersistence"
+ ];
+ 
+-const VERSION = "0.4.5";
++const VERSION = "0.4.5-fork.1";
+ const CAPABILITIES = { upload: true, imagePreview: true, newConversation: true, streaming: true, processSteps: true, regenerate: true, branches: true, importAttachments: true, workspaceFiles: true, deleteConversation: true, renameConversation: true };
+ const TOKEN_REF = "DEEPSEEK_WEB_TOKEN";
+ const MAX_BODY_BYTES = 256 * 1024;
+diff --git a/package.json b/package.json
+index afcef71..6e8403c 100644
+--- a/package.json
++++ b/package.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "@xueray/dsh-web-bridge",
+-  "version": "0.4.5",
++  "version": "0.4.5-fork.1",
+   "type": "module",
+   "description": "Browse and continue DeepSeek web conversations in DSH, or import them with attachments into a workspace.",
+   "author": {
+@@ -45,6 +45,7 @@
+     "CHANGELOG.md",
+     "LICENSE",
+     "THIRD_PARTY_NOTICES.md",
++    "FORK.md",
+     "docs",
+     "assets/screenshots",
+     "screenshots.json"

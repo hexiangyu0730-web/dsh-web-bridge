@@ -8,7 +8,7 @@ Bring DeepSeek web conversations into DeepSeek Harness: keep chatting on the web
 
 I built it to stop copying context between two windows. Open a web conversation when you want to stay on the web account; drag it into a workspace when you want your local agent to take over.
 
-> **This repository is a modified fork.** It is based on SaiSenBox's `@xueray/dsh-web-bridge` 0.4.5 and adds paste-to-attach and drag-and-drop attachments to the web chat composer. It is not published or reviewed by the original author, is limited to noncommercial use, and must keep the full [LICENSE](LICENSE) and Required Notice; see [FORK.md](FORK.md). Upstream: <https://github.com/SaiSenBox/dsh-web-bridge>.
+> **This repository is a modified fork.** It is based on SaiSenBox's `@xueray/dsh-web-bridge` 0.4.5 and adds paste-to-attach and drag-and-drop attachments to the web chat composer. It is not published or reviewed by the original author, is limited to noncommercial use, and must keep the full [LICENSE](LICENSE) and Required Notice. Changes are confined to `lib/client.js`; see [FORK.md](FORK.md) and [docs/fork-changes.patch](docs/fork-changes.patch) for the line-by-line diff. Upstream: <https://github.com/SaiSenBox/dsh-web-bridge>.
 
 This is an **unofficial plugin by SaiSenBox**, not a DeepSeek product and not the similarly named `dsh-deepseek-web` npm package. It uses private web endpoints that can change without notice.
 
