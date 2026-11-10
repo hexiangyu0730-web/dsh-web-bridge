@@ -1,6 +1,6 @@
 {
   "name": "@xueray/dsh-web-bridge",
-  "version": "0.4.5",
+  "version": "0.4.5-fork.1",
   "type": "module",
   "description": "Browse and continue DeepSeek web conversations in DSH, or import them with attachments into a workspace.",
   "author": {
@@ -45,6 +45,7 @@
     "CHANGELOG.md",
     "LICENSE",
     "THIRD_PARTY_NOTICES.md",
+    "FORK.md",
     "docs",
     "assets/screenshots",
     "screenshots.json"

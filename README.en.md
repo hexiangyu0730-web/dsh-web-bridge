@@ -8,6 +8,8 @@ Bring DeepSeek web conversations into DeepSeek Harness: keep chatting on the web
 
 I built it to stop copying context between two windows. Open a web conversation when you want to stay on the web account; drag it into a workspace when you want your local agent to take over.
 
+> **This repository is a modified fork.** It is based on SaiSenBox's `@xueray/dsh-web-bridge` 0.4.5 and adds paste-to-attach and drag-and-drop attachments to the web chat composer. It is not published or reviewed by the original author, is limited to noncommercial use, and must keep the full [LICENSE](LICENSE) and Required Notice; see [FORK.md](FORK.md). Upstream: <https://github.com/SaiSenBox/dsh-web-bridge>.
+
 This is an **unofficial plugin by SaiSenBox**, not a DeepSeek product and not the similarly named `dsh-deepseek-web` npm package. It uses private web endpoints that can change without notice.
 
 ## Features
@@ -17,6 +19,8 @@ This is an **unofficial plugin by SaiSenBox**, not a DeepSeek product and not th
 - Regenerate an answer, switch between versions and continue from the selected branch.
 - Drag a conversation into a workspace or preview it before importing. Readable attachments migrate to local DSH storage, with original files also saved in the workspace.
 - Native DSH components and theme tokens, with Chinese/English following your app language.
+- **Paste attachments**: press Ctrl+V in the composer and images, PDFs, documents or archives on the clipboard become pending attachments; when the clipboard also carries text, it still pastes as text.
+- **Drop attachments**: drop files anywhere on the chat panel; the composer shows a dashed highlight and the files are attached on release.
 
 Opening a web conversation writes replies back to the web account. Continuing an **imported** local conversation uses your DSH default model and does not write back to the original web thread.
 
