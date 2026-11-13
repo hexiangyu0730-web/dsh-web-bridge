@@ -1,5 +1,5 @@
 diff --git a/CHANGELOG.md b/CHANGELOG.md
-index a63d5f2..2860699 100644
+index a63d5f2..785f93b 100644
 --- a/CHANGELOG.md
 +++ b/CHANGELOG.md
 @@ -1,5 +1,18 @@
@@ -7,7 +7,7 @@ index a63d5f2..2860699 100644
  
 +## 0.4.5-fork.2
 +
-+- 网页对话的「思考模式」「联网搜索」改为默认开启，并记住最后一次选择（`localStorage` 键 `dsh-deepseek-web.composer-mode`）；重新打开对话、切换会话或重启 DSH 后保持上次状态，不再每次被重置为关闭。
++- 网页对话的「思考模式」「联网搜索」改为默认开启，并记住最后一次选择：先写 `localStorage`（`dsh-deepseek-web.composer-mode`），再通过新增的 `GET/PUT /deepseek-web/preferences` 存到 `$DSH_HOME/dsh-web-bridge-preferences.json`，因此换端口、重开对话或重启 DSH 后都保持上次状态。
 +
 +## 0.4.5-fork.1
 +
@@ -23,10 +23,10 @@ index a63d5f2..2860699 100644
  - npm 包名为 `@xueray/dsh-web-bridge`，界面名称为「DeepSeek 会话桥」；原配置行 ID、HTTP 路由和浏览器偏好键保持兼容。
 diff --git a/FORK.md b/FORK.md
 new file mode 100644
-index 0000000..b76444e
+index 0000000..8173bcb
 --- /dev/null
 +++ b/FORK.md
-@@ -0,0 +1,92 @@
+@@ -0,0 +1,93 @@
 +# 修改说明（fork）
 +
 +本仓库是 **非官方修改版**，基于 SaiSenBox 的 [`@xueray/dsh-web-bridge`](https://github.com/SaiSenBox/dsh-web-bridge) 0.4.5。
@@ -43,7 +43,7 @@ index 0000000..b76444e
 +1. **粘贴附件**：输入框新增 `onPaste`。从 `clipboardData.files` / `items` 取出文件交给原有的 `addFiles()`；仅当剪贴板没有文字时接管，复制富文本仍按文本粘贴。
 +2. **拖放附件**：聊天面板根节点绑定 `dragenter/dragover/dragleave/drop`，用计数器避免子元素抖动；拖入文件时加 `dsweb-drop-active` 类。发送中、历史加载中或回答分支异常时不接收。
 +3. **样式与版本**：新增 `.dsweb-chat.dsweb-drop-active .dsweb-chat-composer` 虚线高亮；`FALLBACK_VERSION` / `VERSION` / `package.json` 版本改为 `0.4.5-fork.2`。
-+4. **思考模式 / 联网搜索**：`WebChatPanel` 的两个开关改为从 `localStorage`（`dsh-deepseek-web.composer-mode`）读取，默认开启，切换时写回；重新打开对话或重启 DSH 后保持上次选择。
++4. **思考模式 / 联网搜索**：`WebChatPanel` 的两个开关默认开启，并从 `localStorage`（`dsh-deepseek-web.composer-mode`）与 Host 的 `GET/PUT /deepseek-web/preferences` 读取上次选择；Host 侧存到 `$DSH_HOME/dsh-web-bridge-preferences.json`，换端口或重启 DSH 也不会丢。
 +
 +两者都复用原有上传链路，限制不变：最多 10 个附件，单个 ≤ 20 MiB；输入框文本上限仍为 8000 字符。
 +
@@ -65,6 +65,7 @@ index 0000000..b76444e
 +| `lib/client.js` | 面板根节点 `.dsweb-chat` | 绑定拖放事件，按状态切换 `dsweb-drop-active` |
 +| `lib/client.js` | 输入框 `dsweb-chat-input` | 新增 `onPaste` 处理 |
 +| `lib/client.js` | `WebChatPanel` 的 `thinking` / `search` | 初值来自 `localStorage`（默认开启），随切换写回 |
++| `lib/index.js` | 路由 `/deepseek-web/preferences` | 新增 `GET` / `PUT`，把开关状态存到 `$DSH_HOME/dsh-web-bridge-preferences.json` |
 +| `lib/client.js` | 样式表 | 新增拖放高亮规则 |
 +| `lib/client.js`、`lib/index.js`、`package.json` | 版本常量 | `0.4.5` → `0.4.5-fork.1` |
 +| `README.md`、`README.en.md`、`CHANGELOG.md` | — | 标注 fork、补充功能与变更条目 |
@@ -219,7 +220,7 @@ index 0000000..a92334a
 +- GitHub 显示 `action_required`：来自 fork 的首次贡献需要维护者批准后才会运行 workflow，这是 GitHub 的默认策略，不是构建失败。
 +- 等待维护者审核/批准 CI；如需调整（只收粘贴、或拆成两个 PR），在原 PR 上回复即可。
 diff --git a/lib/client.js b/lib/client.js
-index fef5ba8..ee62ede 100644
+index fef5ba8..07ea905 100644
 --- a/lib/client.js
 +++ b/lib/client.js
 @@ -16,7 +16,7 @@ window.__ModuleLoader__.load({
@@ -239,7 +240,7 @@ index fef5ba8..ee62ede 100644
  			".dsweb-chat .dsweb-chat-input{box-sizing:border-box;width:calc(100% - 4px);min-height:36px;max-height:var(--dsh-composer-text-max-height);resize:none;overflow:auto;border:0;outline:0;border-radius:0;background:transparent;box-shadow:none;color:var(--dsw-alias-label-primary);caret-color:var(--dsw-alias-state-business-primary);font:inherit;line-height:inherit;white-space:pre-wrap;overflow-wrap:anywhere;padding:4px 8px 0 14px}.dsweb-chat .dsweb-chat-input:focus{outline:0;box-shadow:none}.dsweb-chat-input::placeholder{color:var(--dsw-alias-label-caption,var(--dsw-alias-label-tertiary))}.dsweb-composer-row{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;min-width:0;padding:2px 8px 6px}.dsweb-composer-tools,.dsweb-composer-trailing{display:flex;align-items:center;gap:12px;min-width:0}.dsweb-composer-trailing{margin-left:auto;flex:none}.dsweb-composer-add{display:grid;place-items:center;flex:none;width:28px;height:28px;border:0;border-radius:999px;background:var(--dsw-specific-selector);color:var(--dsw-alias-label-primary);cursor:pointer}.dsweb-composer-add:hover{background:var(--dsw-alias-interactive-bg-hover-solid)}",
  			".dsweb-composer-mode,.dsweb-model-trigger{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:28px;max-width:100%;min-width:0;padding:0 6px;border:0;border-radius:var(--dsw-radius-sm,8px);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:13px;line-height:20px;font-weight:500;cursor:pointer}.dsweb-composer-mode:hover,.dsweb-model-trigger:hover{background:var(--dsw-alias-interactive-bg-hover)}.dsweb-composer-mode[aria-pressed='true']{color:var(--dsw-alias-state-business-primary);background:var(--dsw-alias-state-business-tertiary,var(--dsw-alias-interactive-bg-hover))}.dsweb-model-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dsweb-model-mode{color:var(--dsw-alias-label-tertiary)}.dsweb-model-trigger[aria-expanded='true']>svg:last-child{transform:rotate(180deg)}.dsweb-chat-send{display:grid;place-items:center;flex:none;width:34px;height:34px;transform:translateY(-2px);border:0;border-radius:999px;background:var(--dsw-alias-button-info-fill);color:#fff;cursor:pointer;transition:background-color .1s}.dsweb-chat-send:hover:not(:disabled){background:var(--dsw-alias-button-info-hover)}.dsweb-chat-send:disabled{opacity:.4;cursor:default}.dsweb-composer-mode:disabled,.dsweb-model-trigger:disabled{opacity:.5;cursor:default}.dsweb-composer-root button:focus-visible{outline:2px solid var(--dsw-focus-ring-color,var(--dsw-alias-state-business-primary));outline-offset:2px}.dsweb-chat-option-row{display:flex;align-items:center;justify-content:space-between;gap:28px;min-width:200px;padding:8px 10px;font-size:13px}.dsweb-chat-options{max-width:calc(100vw - 24px)}.dsweb-chat-recovery{width:100%;max-width:var(--dsh-composer-card-max-width)}",
  			".dsweb-search-field{position:relative;min-width:0;flex:none;display:flex;align-items:center;color:var(--dsw-alias-label-tertiary)}.dsweb-search-field>svg{position:absolute;left:10px;pointer-events:none}.dsweb-search-field .dsweb-input{height:34px;padding:0 10px 0 32px;border:.5px solid var(--dsw-alias-border-l4,var(--dsw-alias-border-l2));background:var(--dsw-alias-bg-layer-1);font-size:12px}.dsweb-input:focus,.dsweb-textarea:focus{border-color:var(--dsw-focus-ring-color,var(--dsw-alias-state-business-primary));outline:0;box-shadow:0 0 0 2px color-mix(in srgb,var(--dsw-focus-ring-color,var(--dsw-alias-state-business-primary)) 18%,transparent)}",
-@@ -1092,6 +1093,35 @@ window.__ModuleLoader__.load({
+@@ -1092,6 +1093,40 @@ window.__ModuleLoader__.load({
  			}
  		}
  
@@ -261,6 +262,11 @@ index fef5ba8..ee62ede 100644
 +			}
 +		}
 +
++		function normalizeComposerMode(value) {
++			if (!value || typeof value !== "object") return null;
++			return { thinking: value.thinking !== false, search: value.search !== false };
++		}
++
 +		function storeComposerMode(mode) {
 +			try {
 +				window.localStorage.setItem(COMPOSER_MODE_STORAGE_KEY, JSON.stringify({
@@ -275,7 +281,7 @@ index fef5ba8..ee62ede 100644
  		// Temporary web conversation shown in the main area. The store holds only
  		// { sessionId, title } for a chat.deepseek.com conversation; no DSH session is
  		// created and no local log is written for it.
-@@ -3841,14 +3871,18 @@ window.__ModuleLoader__.load({
+@@ -3841,14 +3876,52 @@ window.__ModuleLoader__.load({
  			var prompt = promptState[0];
  			var setPrompt = promptState[1];
  
@@ -289,14 +295,48 @@ index fef5ba8..ee62ede 100644
  			var search = searchState[0];
  			var setSearch = searchState[1];
  
++			// The host stores the preference under DSH_HOME, so it survives a new page
++			// port or a DSH restart; localStorage stays as the fast path.
++			var composerModeTouched = React.useRef(false);
++			var composerModeSynced = React.useRef(false);
++			React.useEffect(function () {
++				var cancelled = false;
++				Promise.resolve()
++					.then(function () {
++						return fetch(API_BASE + "/preferences", { credentials: "same-origin", cache: "no-store" });
++					})
++					.then(function (response) { return response && response.ok ? response.json() : null; })
++					.then(function (payload) {
++						if (cancelled || composerModeTouched.current) return;
++						var stored = normalizeComposerMode(payload && payload.composerMode);
++						if (!stored) return;
++						setThinking(stored.thinking);
++						setSearch(stored.search);
++					})
++					.catch(function () { /* 偏好是可选能力，读不到就用默认值 */ });
++				return function () { cancelled = true; };
++			}, []);
 +			React.useEffect(function () {
 +				storeComposerMode({ thinking: thinking, search: search });
++				if (!composerModeSynced.current) {
++					// Skip the first render so the defaults never overwrite a stored choice.
++					composerModeSynced.current = true;
++					return;
++				}
++				try {
++					fetch(API_BASE + "/preferences", {
++						method: "PUT",
++						credentials: "same-origin",
++						headers: { "content-type": "application/json" },
++						body: JSON.stringify({ composerMode: { thinking: thinking, search: search } })
++					}).catch(function () { /* 偏好是可选能力，写失败不影响使用 */ });
++				} catch (error) { /* ignore */ }
 +			}, [thinking, search]);
 +
  			var sendingState = React.useState(false);
  			var sending = sendingState[0];
  			var setSending = sendingState[1];
-@@ -3872,6 +3906,8 @@ window.__ModuleLoader__.load({
+@@ -3872,6 +3945,8 @@ window.__ModuleLoader__.load({
  			var fileInputRef = React.useRef(null);
  			var filesState = React.useState([]), files = filesState[0], setFiles = filesState[1];
  			var fileErrorState = React.useState(""), fileError = fileErrorState[0], setFileError = fileErrorState[1];
@@ -305,7 +345,7 @@ index fef5ba8..ee62ede 100644
  			var filesRef = React.useRef([]), uploadEpoch = React.useRef(0), fileSequence = React.useRef(0);
  			var uploadControllers = React.useRef(new Map()), uploadQueue = React.useRef(Promise.resolve());
  			function updateFiles(transform) {
-@@ -3925,6 +3961,40 @@ window.__ModuleLoader__.load({
+@@ -3925,6 +4000,40 @@ window.__ModuleLoader__.load({
  				updateFiles(function (list) { return list.concat(added); });
  				queueUploads(added);
  			}
@@ -346,7 +386,7 @@ index fef5ba8..ee62ede 100644
  			function removeFile(key) {
  				var controller = uploadControllers.current.get(key);
  				if (controller) controller.abort();
-@@ -4232,6 +4302,32 @@ window.__ModuleLoader__.load({
+@@ -4232,6 +4341,32 @@ window.__ModuleLoader__.load({
  									setPrompt(event.target.value);
  									setSendError("");
  								},
@@ -379,7 +419,20 @@ index fef5ba8..ee62ede 100644
  								onKeyDown: function (event) {
  									if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing || event.keyCode === 229) return;
  									event.preventDefault();
-@@ -4268,7 +4364,11 @@ window.__ModuleLoader__.load({
+@@ -4251,10 +4386,10 @@ window.__ModuleLoader__.load({
+ 											if (fileInputRef.current) fileInputRef.current.click();
+ 										} }, R(UiIcon, { name: "plus", size: 14 })),
+ 									R("button", { type: "button", className: "dsweb-composer-mode", "aria-pressed": thinking, disabled: sending,
+-										"aria-label": tt("continueThinking"), title: tt("continueThinking"), onClick: function () { setThinking(!thinking); } },
++										"aria-label": tt("continueThinking"), title: tt("continueThinking"), onClick: function () { composerModeTouched.current = true; setThinking(!thinking); } },
+ 										R(UiIcon, { name: "think", size: 16 }), R("span", { className: "dsweb-mode-label" }, tt("continueThinking"))),
+ 									R("button", { type: "button", className: "dsweb-composer-mode", "aria-pressed": search, disabled: sending,
+-										"aria-label": tt("continueSearch"), title: tt("continueSearch"), onClick: function () { setSearch(!search); } },
++										"aria-label": tt("continueSearch"), title: tt("continueSearch"), onClick: function () { composerModeTouched.current = true; setSearch(!search); } },
+ 										R(UiIcon, { name: "globe", size: 16 }), R("span", { className: "dsweb-mode-label" }, tt("continueSearch")))),
+ 								R("div", { className: "dsweb-composer-trailing" },
+ 									R("span", { className: "dsweb-model-label" }, "DeepSeek"),
+@@ -4268,7 +4403,11 @@ window.__ModuleLoader__.load({
  
  			return R(
  				"div",
@@ -393,10 +446,20 @@ index fef5ba8..ee62ede 100644
  					"header",
  					{ className: "dsweb-chat-head" },
 diff --git a/lib/index.js b/lib/index.js
-index d1565ed..8cdb42f 100644
+index d1565ed..be93430 100644
 --- a/lib/index.js
 +++ b/lib/index.js
-@@ -38,7 +38,7 @@ export const inject = [
+@@ -9,6 +9,9 @@
+ // 本文件不 import 任何 @deepseek-ai 包（零依赖），因此不需要 peerDependencies。
+ 
+ import { randomUUID } from "node:crypto";
++import { mkdir, readFile, writeFile } from "node:fs/promises";
++import { homedir } from "node:os";
++import { dirname, join } from "node:path";
+ import { createWorkspaceArchive, stageAttachment } from "./workspace-files.js";
+ 
+ import {
+@@ -38,7 +41,7 @@ export const inject = [
    "sessionPersistence"
  ];
  
@@ -405,6 +468,88 @@ index d1565ed..8cdb42f 100644
  const CAPABILITIES = { upload: true, imagePreview: true, newConversation: true, streaming: true, processSteps: true, regenerate: true, branches: true, importAttachments: true, workspaceFiles: true, deleteConversation: true, renameConversation: true };
  const TOKEN_REF = "DEEPSEEK_WEB_TOKEN";
  const MAX_BODY_BYTES = 256 * 1024;
+@@ -131,8 +134,42 @@ async function readJsonBody(req, maxBytes = MAX_BODY_BYTES) {
+   }
+ }
+ 
+-function normalizeSessionId(value) {
+-  const id = String(value == null ? "" : value).trim();
++// 用户偏好：网页对话里「思考模式 / 联网搜索」的开关状态。存成 DSH_HOME 下的一个
++// 小 JSON，跨页面重载、换端口和 DSH 重启都保留；测试可用 DSH_DEEPSEEK_WEB_PREFS 覆盖路径。
++const PREFERENCES_FILE_NAME = "dsh-web-bridge-preferences.json";
++
++function preferencesFile() {
++  const override = String(process.env.DSH_DEEPSEEK_WEB_PREFS || "").trim();
++  if (override) return override;
++  const home = String(process.env.DSH_HOME || "").trim() || join(homedir(), ".dsh");
++  return join(home, PREFERENCES_FILE_NAME);
++}
++
++function normalizeComposerMode(value) {
++  if (!value || typeof value !== "object") return null;
++  return { thinking: value.thinking !== false, search: value.search !== false };
++}
++
++async function readPreferences() {
++  try {
++    const raw = await readFile(preferencesFile(), "utf8");
++    const parsed = JSON.parse(raw);
++    return parsed && typeof parsed === "object" ? parsed : {};
++  } catch (_) {
++    return {};
++  }
++}
++
++async function writePreferences(patch) {
++  const current = await readPreferences();
++  const next = { ...current, ...patch };
++  const file = preferencesFile();
++  await mkdir(dirname(file), { recursive: true });
++  await writeFile(file, JSON.stringify(next, null, 2) + "\n", "utf8");
++  return next;
++}
++
++function normalizeSessionId(value) {  const id = String(value == null ? "" : value).trim();
+   if (!id || id.length > 200 || /[\u0000-\u001f\u007f]/.test(id)) {
+     throw errorWithStatus(400, "invalid sessionId");
+   }
+@@ -1056,11 +1093,26 @@ export function apply(ctx) {
+       tokenHint: tokenHint(token),
+       tokenSource: source,
+       baseUrl: baseUrl(),
+-      thinkingDefault: false,
+-      searchDefault: false
++      thinkingDefault: true,
++      searchDefault: true
+     });
+   }
+ 
++  async function handlePreferences(req, res) {
++    assertLocalRequest(req);
++    if (req.method === "GET") {
++      const prefs = await readPreferences();
++      json(res, 200, { ok: true, composerMode: normalizeComposerMode(prefs.composerMode) });
++      return;
++    }
++    if (!methodAllowed(req, res, "PUT")) return;
++    const body = await readJsonBody(req);
++    const mode = normalizeComposerMode(body && body.composerMode);
++    if (!mode) throw errorWithStatus(400, "composerMode must be an object");
++    await writePreferences({ composerMode: mode });
++    json(res, 200, { ok: true, composerMode: mode });
++  }
++
+   async function handleToken(req, res) {
+     if (!methodAllowed(req, res, "POST")) return;
+     assertLocalRequest(req);
+@@ -1401,6 +1453,7 @@ export function apply(ctx) {
+         return;
+       }
+       if (subpath === "/status") return await handleStatus(req, res);
++      if (subpath === "/preferences") return await handlePreferences(req, res);
+       if (subpath === "/token") return await handleToken(req, res);
+       if (subpath === "/sessions") return await handleSessions(req, res, url);
+       if (subpath === "/history") return await handleHistory(req, res, url);
 diff --git a/package.json b/package.json
 index afcef71..7cfcdec 100644
 --- a/package.json
@@ -425,3 +570,43 @@ index afcef71..7cfcdec 100644
      "docs",
      "assets/screenshots",
      "screenshots.json"
+diff --git a/test/host-routes.test.js b/test/host-routes.test.js
+index ecaf9c5..c821b19 100644
+--- a/test/host-routes.test.js
++++ b/test/host-routes.test.js
+@@ -568,3 +568,35 @@ test('rename route validates, trims and returns only the requested web title wit
+   assert.deepEqual(result, { ok: true, sessionId: 'web-one', title: '新的网页标题' });
+   assert.equal(calls, 1); assert.deepEqual(app.titles, []); assert.deepEqual(app.creates, []);
+ });
++
++test('preferences route persists composer modes outside the page origin', async (t) => {
++  const dir = await mkdtemp(join(tmpdir(), 'dsh-web-prefs-'));
++  const file = join(dir, 'preferences.json');
++  process.env.DSH_DEEPSEEK_WEB_PREFS = file;
++  t.after(async () => {
++    delete process.env.DSH_DEEPSEEK_WEB_PREFS;
++    await rm(dir, { recursive: true, force: true });
++  });
++  const app = await host(t);
++
++  const before = await (await fetch(app.base + '/deepseek-web/preferences')).json();
++  assert.deepEqual(before, { ok: true, composerMode: null });
++
++  const saved = await fetch(app.base + '/deepseek-web/preferences', {
++    method: 'PUT',
++    headers: { 'content-type': 'application/json' },
++    body: JSON.stringify({ composerMode: { thinking: true, search: false } }),
++  });
++  assert.equal(saved.status, 200);
++
++  const after = await (await fetch(app.base + '/deepseek-web/preferences')).json();
++  assert.deepEqual(after, { ok: true, composerMode: { thinking: true, search: false } });
++  assert.deepEqual(JSON.parse(await readFile(file, 'utf8')).composerMode, { thinking: true, search: false });
++
++  const invalid = await fetch(app.base + '/deepseek-web/preferences', {
++    method: 'PUT',
++    headers: { 'content-type': 'application/json' },
++    body: JSON.stringify({ composerMode: 'off' }),
++  });
++  assert.equal(invalid.status, 400);
++});

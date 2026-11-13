@@ -568,3 +568,35 @@ test('rename route validates, trims and returns only the requested web title wit
   assert.deepEqual(result, { ok: true, sessionId: 'web-one', title: '新的网页标题' });
   assert.equal(calls, 1); assert.deepEqual(app.titles, []); assert.deepEqual(app.creates, []);
 });
+
+test('preferences route persists composer modes outside the page origin', async (t) => {
+  const dir = await mkdtemp(join(tmpdir(), 'dsh-web-prefs-'));
+  const file = join(dir, 'preferences.json');
+  process.env.DSH_DEEPSEEK_WEB_PREFS = file;
+  t.after(async () => {
+    delete process.env.DSH_DEEPSEEK_WEB_PREFS;
+    await rm(dir, { recursive: true, force: true });
+  });
+  const app = await host(t);
+
+  const before = await (await fetch(app.base + '/deepseek-web/preferences')).json();
+  assert.deepEqual(before, { ok: true, composerMode: null });
+
+  const saved = await fetch(app.base + '/deepseek-web/preferences', {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ composerMode: { thinking: true, search: false } }),
+  });
+  assert.equal(saved.status, 200);
+
+  const after = await (await fetch(app.base + '/deepseek-web/preferences')).json();
+  assert.deepEqual(after, { ok: true, composerMode: { thinking: true, search: false } });
+  assert.deepEqual(JSON.parse(await readFile(file, 'utf8')).composerMode, { thinking: true, search: false });
+
+  const invalid = await fetch(app.base + '/deepseek-web/preferences', {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ composerMode: 'off' }),
+  });
+  assert.equal(invalid.status, 400);
+});

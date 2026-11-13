@@ -2,7 +2,7 @@
 
 ## 0.4.5-fork.2
 
-- 网页对话的「思考模式」「联网搜索」改为默认开启，并记住最后一次选择（`localStorage` 键 `dsh-deepseek-web.composer-mode`）；重新打开对话、切换会话或重启 DSH 后保持上次状态，不再每次被重置为关闭。
+- 网页对话的「思考模式」「联网搜索」改为默认开启，并记住最后一次选择：先写 `localStorage`（`dsh-deepseek-web.composer-mode`），再通过新增的 `GET/PUT /deepseek-web/preferences` 存到 `$DSH_HOME/dsh-web-bridge-preferences.json`，因此换端口、重开对话或重启 DSH 后都保持上次状态。
 
 ## 0.4.5-fork.1
 

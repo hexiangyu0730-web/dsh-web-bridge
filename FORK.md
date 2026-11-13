@@ -14,7 +14,7 @@
 1. **粘贴附件**：输入框新增 `onPaste`。从 `clipboardData.files` / `items` 取出文件交给原有的 `addFiles()`；仅当剪贴板没有文字时接管，复制富文本仍按文本粘贴。
 2. **拖放附件**：聊天面板根节点绑定 `dragenter/dragover/dragleave/drop`，用计数器避免子元素抖动；拖入文件时加 `dsweb-drop-active` 类。发送中、历史加载中或回答分支异常时不接收。
 3. **样式与版本**：新增 `.dsweb-chat.dsweb-drop-active .dsweb-chat-composer` 虚线高亮；`FALLBACK_VERSION` / `VERSION` / `package.json` 版本改为 `0.4.5-fork.2`。
-4. **思考模式 / 联网搜索**：`WebChatPanel` 的两个开关改为从 `localStorage`（`dsh-deepseek-web.composer-mode`）读取，默认开启，切换时写回；重新打开对话或重启 DSH 后保持上次选择。
+4. **思考模式 / 联网搜索**：`WebChatPanel` 的两个开关默认开启，并从 `localStorage`（`dsh-deepseek-web.composer-mode`）与 Host 的 `GET/PUT /deepseek-web/preferences` 读取上次选择；Host 侧存到 `$DSH_HOME/dsh-web-bridge-preferences.json`，换端口或重启 DSH 也不会丢。
 
 两者都复用原有上传链路，限制不变：最多 10 个附件，单个 ≤ 20 MiB；输入框文本上限仍为 8000 字符。
 
@@ -36,6 +36,7 @@ git diff upstream/main HEAD -- . ':(exclude)assets/promo'
 | `lib/client.js` | 面板根节点 `.dsweb-chat` | 绑定拖放事件，按状态切换 `dsweb-drop-active` |
 | `lib/client.js` | 输入框 `dsweb-chat-input` | 新增 `onPaste` 处理 |
 | `lib/client.js` | `WebChatPanel` 的 `thinking` / `search` | 初值来自 `localStorage`（默认开启），随切换写回 |
+| `lib/index.js` | 路由 `/deepseek-web/preferences` | 新增 `GET` / `PUT`，把开关状态存到 `$DSH_HOME/dsh-web-bridge-preferences.json` |
 | `lib/client.js` | 样式表 | 新增拖放高亮规则 |
 | `lib/client.js`、`lib/index.js`、`package.json` | 版本常量 | `0.4.5` → `0.4.5-fork.1` |
 | `README.md`、`README.en.md`、`CHANGELOG.md` | — | 标注 fork、补充功能与变更条目 |
