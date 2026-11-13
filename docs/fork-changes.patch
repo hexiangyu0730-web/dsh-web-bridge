@@ -1,10 +1,14 @@
 diff --git a/CHANGELOG.md b/CHANGELOG.md
-index a63d5f2..0e8108a 100644
+index a63d5f2..2860699 100644
 --- a/CHANGELOG.md
 +++ b/CHANGELOG.md
-@@ -1,5 +1,14 @@
+@@ -1,5 +1,18 @@
  # 更新记录
  
++## 0.4.5-fork.2
++
++- 网页对话的「思考模式」「联网搜索」改为默认开启，并记住最后一次选择（`localStorage` 键 `dsh-deepseek-web.composer-mode`）；重新打开对话、切换会话或重启 DSH 后保持上次状态，不再每次被重置为关闭。
++
 +## 0.4.5-fork.1
 +
 +本修改版（非上游发布，基于 0.4.5）。
@@ -19,10 +23,10 @@ index a63d5f2..0e8108a 100644
  - npm 包名为 `@xueray/dsh-web-bridge`，界面名称为「DeepSeek 会话桥」；原配置行 ID、HTTP 路由和浏览器偏好键保持兼容。
 diff --git a/FORK.md b/FORK.md
 new file mode 100644
-index 0000000..187257c
+index 0000000..b76444e
 --- /dev/null
 +++ b/FORK.md
-@@ -0,0 +1,90 @@
+@@ -0,0 +1,92 @@
 +# 修改说明（fork）
 +
 +本仓库是 **非官方修改版**，基于 SaiSenBox 的 [`@xueray/dsh-web-bridge`](https://github.com/SaiSenBox/dsh-web-bridge) 0.4.5。
@@ -38,7 +42,8 @@ index 0000000..187257c
 +
 +1. **粘贴附件**：输入框新增 `onPaste`。从 `clipboardData.files` / `items` 取出文件交给原有的 `addFiles()`；仅当剪贴板没有文字时接管，复制富文本仍按文本粘贴。
 +2. **拖放附件**：聊天面板根节点绑定 `dragenter/dragover/dragleave/drop`，用计数器避免子元素抖动；拖入文件时加 `dsweb-drop-active` 类。发送中、历史加载中或回答分支异常时不接收。
-+3. **样式与版本**：新增 `.dsweb-chat.dsweb-drop-active .dsweb-chat-composer` 虚线高亮；`FALLBACK_VERSION` / `VERSION` / `package.json` 版本改为 `0.4.5-fork.1`。
++3. **样式与版本**：新增 `.dsweb-chat.dsweb-drop-active .dsweb-chat-composer` 虚线高亮；`FALLBACK_VERSION` / `VERSION` / `package.json` 版本改为 `0.4.5-fork.2`。
++4. **思考模式 / 联网搜索**：`WebChatPanel` 的两个开关改为从 `localStorage`（`dsh-deepseek-web.composer-mode`）读取，默认开启，切换时写回；重新打开对话或重启 DSH 后保持上次选择。
 +
 +两者都复用原有上传链路，限制不变：最多 10 个附件，单个 ≤ 20 MiB；输入框文本上限仍为 8000 字符。
 +
@@ -59,6 +64,7 @@ index 0000000..187257c
 +| `lib/client.js` | `addFiles()` 之后 | 新增 `dragHasFiles`、`dragCanDrop`、`onChatDragEnter/Over/Leave/Drop` |
 +| `lib/client.js` | 面板根节点 `.dsweb-chat` | 绑定拖放事件，按状态切换 `dsweb-drop-active` |
 +| `lib/client.js` | 输入框 `dsweb-chat-input` | 新增 `onPaste` 处理 |
++| `lib/client.js` | `WebChatPanel` 的 `thinking` / `search` | 初值来自 `localStorage`（默认开启），随切换写回 |
 +| `lib/client.js` | 样式表 | 新增拖放高亮规则 |
 +| `lib/client.js`、`lib/index.js`、`package.json` | 版本常量 | `0.4.5` → `0.4.5-fork.1` |
 +| `README.md`、`README.en.md`、`CHANGELOG.md` | — | 标注 fork、补充功能与变更条目 |
@@ -114,7 +120,7 @@ index 0000000..187257c
 +
 +上游使用的是 DeepSeek 网页端的非公开接口，没有稳定性承诺，可能被限流或改变；发送、重答、删除等操作会修改网页账号。请自行确认使用方式符合服务条款。
 diff --git a/README.en.md b/README.en.md
-index 3cc82d6..84a7a18 100644
+index 3cc82d6..e4f9eed 100644
 --- a/README.en.md
 +++ b/README.en.md
 @@ -8,6 +8,8 @@ Bring DeepSeek web conversations into DeepSeek Harness: keep chatting on the web
@@ -126,17 +132,18 @@ index 3cc82d6..84a7a18 100644
  This is an **unofficial plugin by SaiSenBox**, not a DeepSeek product and not the similarly named `dsh-deepseek-web` npm package. It uses private web endpoints that can change without notice.
  
  ## Features
-@@ -17,6 +19,8 @@ This is an **unofficial plugin by SaiSenBox**, not a DeepSeek product and not th
+@@ -17,6 +19,9 @@ This is an **unofficial plugin by SaiSenBox**, not a DeepSeek product and not th
  - Regenerate an answer, switch between versions and continue from the selected branch.
  - Drag a conversation into a workspace or preview it before importing. Readable attachments migrate to local DSH storage, with original files also saved in the workspace.
  - Native DSH components and theme tokens, with Chinese/English following your app language.
 +- **Paste attachments**: press Ctrl+V in the composer and images, PDFs, documents or archives on the clipboard become pending attachments; when the clipboard also carries text, it still pastes as text.
 +- **Drop attachments**: drop files anywhere on the chat panel; the composer shows a dashed highlight and the files are attached on release.
++- **Thinking / web search** modes default to on and remember your last choice, so reopening a conversation or restarting DSH no longer silently turns them off.
  
  Opening a web conversation writes replies back to the web account. Continuing an **imported** local conversation uses your DSH default model and does not write back to the original web thread.
  
 diff --git a/README.md b/README.md
-index 936a857..bede9f1 100644
+index 936a857..87e613a 100644
 --- a/README.md
 +++ b/README.md
 @@ -8,6 +8,8 @@
@@ -148,12 +155,13 @@ index 936a857..bede9f1 100644
  这是 **SaiSenBox 的非官方插件**，不属于 DeepSeek 官方产品，也不是名称相近的 `dsh-deepseek-web` npm 包。网页接口没有稳定性承诺，可能随时变化；使用前请了解[风险与限制](#风险与限制)。
  
  ## 能做什么
-@@ -17,6 +19,9 @@
+@@ -17,6 +19,10 @@
  - 把网页会话拖入工作区，变成真正的 DSH 会话；也可以预览后选择工作区导入。
  - 导入时迁移可读取的图片和文件，同时把原文件放到目标工作区；失败项会单独列出，不会悄悄丢掉。
  - 中文、英文随 DSH 设置切换，沿用原生主题、Markdown 和交互组件。
 +- **粘贴附件**：在输入框里 Ctrl+V，剪贴板中的图片、PDF、文档等文件直接变成待发送附件；剪贴板里带文字时仍按文本粘贴。
 +- **拖放附件**：把文件拖到聊天区域任意位置，输入框出现虚线高亮，松手即加入附件。
++- **思考模式 / 联网搜索**默认开启，切换后记住上次选择，重新打开对话或重启后不会又被重置为关闭。
 +
  
  **两种“继续聊”不是一回事：**点击网页会话，回复会写回网页账号；拖入工作区后，继续对话使用 DSH 当前默认模型，不会写回原网页会话。
@@ -211,7 +219,7 @@ index 0000000..a92334a
 +- GitHub 显示 `action_required`：来自 fork 的首次贡献需要维护者批准后才会运行 workflow，这是 GitHub 的默认策略，不是构建失败。
 +- 等待维护者审核/批准 CI；如需调整（只收粘贴、或拆成两个 PR），在原 PR 上回复即可。
 diff --git a/lib/client.js b/lib/client.js
-index fef5ba8..c1408a8 100644
+index fef5ba8..ee62ede 100644
 --- a/lib/client.js
 +++ b/lib/client.js
 @@ -16,7 +16,7 @@ window.__ModuleLoader__.load({
@@ -219,7 +227,7 @@ index fef5ba8..c1408a8 100644
  		var LOCALE_NS = "@xueray/dsh-web-bridge";
  		var API_BASE = "/deepseek-web";
 -		var FALLBACK_VERSION = "0.4.5";
-+		var FALLBACK_VERSION = "0.4.5-fork.1";
++		var FALLBACK_VERSION = "0.4.5-fork.2";
  		var MAX_TOKEN_LENGTH = 4096;
  		var MAX_PROMPT_LENGTH = 8000;
  		var MAX_TEXT_CHARS = 20000;
@@ -231,7 +239,64 @@ index fef5ba8..c1408a8 100644
  			".dsweb-chat .dsweb-chat-input{box-sizing:border-box;width:calc(100% - 4px);min-height:36px;max-height:var(--dsh-composer-text-max-height);resize:none;overflow:auto;border:0;outline:0;border-radius:0;background:transparent;box-shadow:none;color:var(--dsw-alias-label-primary);caret-color:var(--dsw-alias-state-business-primary);font:inherit;line-height:inherit;white-space:pre-wrap;overflow-wrap:anywhere;padding:4px 8px 0 14px}.dsweb-chat .dsweb-chat-input:focus{outline:0;box-shadow:none}.dsweb-chat-input::placeholder{color:var(--dsw-alias-label-caption,var(--dsw-alias-label-tertiary))}.dsweb-composer-row{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;min-width:0;padding:2px 8px 6px}.dsweb-composer-tools,.dsweb-composer-trailing{display:flex;align-items:center;gap:12px;min-width:0}.dsweb-composer-trailing{margin-left:auto;flex:none}.dsweb-composer-add{display:grid;place-items:center;flex:none;width:28px;height:28px;border:0;border-radius:999px;background:var(--dsw-specific-selector);color:var(--dsw-alias-label-primary);cursor:pointer}.dsweb-composer-add:hover{background:var(--dsw-alias-interactive-bg-hover-solid)}",
  			".dsweb-composer-mode,.dsweb-model-trigger{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:28px;max-width:100%;min-width:0;padding:0 6px;border:0;border-radius:var(--dsw-radius-sm,8px);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:13px;line-height:20px;font-weight:500;cursor:pointer}.dsweb-composer-mode:hover,.dsweb-model-trigger:hover{background:var(--dsw-alias-interactive-bg-hover)}.dsweb-composer-mode[aria-pressed='true']{color:var(--dsw-alias-state-business-primary);background:var(--dsw-alias-state-business-tertiary,var(--dsw-alias-interactive-bg-hover))}.dsweb-model-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dsweb-model-mode{color:var(--dsw-alias-label-tertiary)}.dsweb-model-trigger[aria-expanded='true']>svg:last-child{transform:rotate(180deg)}.dsweb-chat-send{display:grid;place-items:center;flex:none;width:34px;height:34px;transform:translateY(-2px);border:0;border-radius:999px;background:var(--dsw-alias-button-info-fill);color:#fff;cursor:pointer;transition:background-color .1s}.dsweb-chat-send:hover:not(:disabled){background:var(--dsw-alias-button-info-hover)}.dsweb-chat-send:disabled{opacity:.4;cursor:default}.dsweb-composer-mode:disabled,.dsweb-model-trigger:disabled{opacity:.5;cursor:default}.dsweb-composer-root button:focus-visible{outline:2px solid var(--dsw-focus-ring-color,var(--dsw-alias-state-business-primary));outline-offset:2px}.dsweb-chat-option-row{display:flex;align-items:center;justify-content:space-between;gap:28px;min-width:200px;padding:8px 10px;font-size:13px}.dsweb-chat-options{max-width:calc(100vw - 24px)}.dsweb-chat-recovery{width:100%;max-width:var(--dsh-composer-card-max-width)}",
  			".dsweb-search-field{position:relative;min-width:0;flex:none;display:flex;align-items:center;color:var(--dsw-alias-label-tertiary)}.dsweb-search-field>svg{position:absolute;left:10px;pointer-events:none}.dsweb-search-field .dsweb-input{height:34px;padding:0 10px 0 32px;border:.5px solid var(--dsw-alias-border-l4,var(--dsw-alias-border-l2));background:var(--dsw-alias-bg-layer-1);font-size:12px}.dsweb-input:focus,.dsweb-textarea:focus{border-color:var(--dsw-focus-ring-color,var(--dsw-alias-state-business-primary));outline:0;box-shadow:0 0 0 2px color-mix(in srgb,var(--dsw-focus-ring-color,var(--dsw-alias-state-business-primary)) 18%,transparent)}",
-@@ -3872,6 +3873,8 @@ window.__ModuleLoader__.load({
+@@ -1092,6 +1093,35 @@ window.__ModuleLoader__.load({
+ 			}
+ 		}
+ 
++		// Composer modes ("思考模式" / "联网搜索"): both default to on, and whatever
++		// the user picks is remembered, so reopening a conversation does not reset
++		// them to off behind their back.
++		var COMPOSER_MODE_STORAGE_KEY = "dsh-deepseek-web.composer-mode";
++
++		function readStoredComposerMode() {
++			var fallback = { thinking: true, search: true };
++			try {
++				var raw = window.localStorage.getItem(COMPOSER_MODE_STORAGE_KEY);
++				if (!raw) return fallback;
++				var parsed = JSON.parse(raw);
++				if (!parsed || typeof parsed !== "object") return fallback;
++				return { thinking: parsed.thinking !== false, search: parsed.search !== false };
++			} catch (error) {
++				return fallback;
++			}
++		}
++
++		function storeComposerMode(mode) {
++			try {
++				window.localStorage.setItem(COMPOSER_MODE_STORAGE_KEY, JSON.stringify({
++					thinking: mode.thinking === true,
++					search: mode.search === true
++				}));
++			} catch (error) {
++				/* Storage may be disabled; the toggles still work for this session. */
++			}
++		}
++
+ 		// Temporary web conversation shown in the main area. The store holds only
+ 		// { sessionId, title } for a chat.deepseek.com conversation; no DSH session is
+ 		// created and no local log is written for it.
+@@ -3841,14 +3871,18 @@ window.__ModuleLoader__.load({
+ 			var prompt = promptState[0];
+ 			var setPrompt = promptState[1];
+ 
+-			var thinkingState = React.useState(false);
++			var thinkingState = React.useState(function () { return readStoredComposerMode().thinking; });
+ 			var thinking = thinkingState[0];
+ 			var setThinking = thinkingState[1];
+ 
+-			var searchState = React.useState(false);
++			var searchState = React.useState(function () { return readStoredComposerMode().search; });
+ 			var search = searchState[0];
+ 			var setSearch = searchState[1];
+ 
++			React.useEffect(function () {
++				storeComposerMode({ thinking: thinking, search: search });
++			}, [thinking, search]);
++
+ 			var sendingState = React.useState(false);
+ 			var sending = sendingState[0];
+ 			var setSending = sendingState[1];
+@@ -3872,6 +3906,8 @@ window.__ModuleLoader__.load({
  			var fileInputRef = React.useRef(null);
  			var filesState = React.useState([]), files = filesState[0], setFiles = filesState[1];
  			var fileErrorState = React.useState(""), fileError = fileErrorState[0], setFileError = fileErrorState[1];
@@ -240,7 +305,7 @@ index fef5ba8..c1408a8 100644
  			var filesRef = React.useRef([]), uploadEpoch = React.useRef(0), fileSequence = React.useRef(0);
  			var uploadControllers = React.useRef(new Map()), uploadQueue = React.useRef(Promise.resolve());
  			function updateFiles(transform) {
-@@ -3925,6 +3928,40 @@ window.__ModuleLoader__.load({
+@@ -3925,6 +3961,40 @@ window.__ModuleLoader__.load({
  				updateFiles(function (list) { return list.concat(added); });
  				queueUploads(added);
  			}
@@ -281,7 +346,7 @@ index fef5ba8..c1408a8 100644
  			function removeFile(key) {
  				var controller = uploadControllers.current.get(key);
  				if (controller) controller.abort();
-@@ -4232,6 +4269,32 @@ window.__ModuleLoader__.load({
+@@ -4232,6 +4302,32 @@ window.__ModuleLoader__.load({
  									setPrompt(event.target.value);
  									setSendError("");
  								},
@@ -314,7 +379,7 @@ index fef5ba8..c1408a8 100644
  								onKeyDown: function (event) {
  									if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing || event.keyCode === 229) return;
  									event.preventDefault();
-@@ -4268,7 +4331,11 @@ window.__ModuleLoader__.load({
+@@ -4268,7 +4364,11 @@ window.__ModuleLoader__.load({
  
  			return R(
  				"div",
@@ -328,7 +393,7 @@ index fef5ba8..c1408a8 100644
  					"header",
  					{ className: "dsweb-chat-head" },
 diff --git a/lib/index.js b/lib/index.js
-index d1565ed..49078b8 100644
+index d1565ed..8cdb42f 100644
 --- a/lib/index.js
 +++ b/lib/index.js
 @@ -38,7 +38,7 @@ export const inject = [
@@ -336,19 +401,19 @@ index d1565ed..49078b8 100644
  ];
  
 -const VERSION = "0.4.5";
-+const VERSION = "0.4.5-fork.1";
++const VERSION = "0.4.5-fork.2";
  const CAPABILITIES = { upload: true, imagePreview: true, newConversation: true, streaming: true, processSteps: true, regenerate: true, branches: true, importAttachments: true, workspaceFiles: true, deleteConversation: true, renameConversation: true };
  const TOKEN_REF = "DEEPSEEK_WEB_TOKEN";
  const MAX_BODY_BYTES = 256 * 1024;
 diff --git a/package.json b/package.json
-index afcef71..6e8403c 100644
+index afcef71..7cfcdec 100644
 --- a/package.json
 +++ b/package.json
 @@ -1,6 +1,6 @@
  {
    "name": "@xueray/dsh-web-bridge",
 -  "version": "0.4.5",
-+  "version": "0.4.5-fork.1",
++  "version": "0.4.5-fork.2",
    "type": "module",
    "description": "Browse and continue DeepSeek web conversations in DSH, or import them with attachments into a workspace.",
    "author": {

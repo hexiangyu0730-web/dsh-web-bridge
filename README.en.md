@@ -21,6 +21,7 @@ This is an **unofficial plugin by SaiSenBox**, not a DeepSeek product and not th
 - Native DSH components and theme tokens, with Chinese/English following your app language.
 - **Paste attachments**: press Ctrl+V in the composer and images, PDFs, documents or archives on the clipboard become pending attachments; when the clipboard also carries text, it still pastes as text.
 - **Drop attachments**: drop files anywhere on the chat panel; the composer shows a dashed highlight and the files are attached on release.
+- **Thinking / web search** modes default to on and remember your last choice, so reopening a conversation or restarting DSH no longer silently turns them off.
 
 Opening a web conversation writes replies back to the web account. Continuing an **imported** local conversation uses your DSH default model and does not write back to the original web thread.
 
